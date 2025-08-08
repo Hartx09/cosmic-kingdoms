@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cosmic Kingdoms</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cosmic Kingdoms">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#4a90e2">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            color: white;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background stars */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .game-header {
+            background: linear-gradient(135deg, rgba(0,0,0,0.9), rgba(74,144,226,0.2));
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #4a90e2;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-title {
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(45deg, #4a90e2, #7b68ee, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(74,144,226,0.3);
+        }
+
+        .player-level {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 2px solid #f39c12;
+            box-shadow: 0 0 15px rgba(243,156,18,0.3);
+        }
+
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .resource {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        .premium-currency {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad) !important;
+            border: 1px solid #9b59b6 !important;
+            box-shadow: 0 0 10px rgba(155,89,182,0.3);
+        }
+
+        .game-world {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            padding-top: 80px;
+            padding-bottom: 200px;
+            overflow: hidden;
+            touch-action: pan-x pan-y;
+        }
+
+        .planet {
+            position: absolute;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 3px solid transparent;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            touch-action: manipulation;
+        }
+
+        .planet:active {
+            transform: scale(0.95);
+        }
+
+        .planet.owned-by-player {
+            border-color: #4a90e2;
+            box-shadow: 0 0 25px #4a90e2, inset 0 0 15px rgba(74,144,226,0.2);
+        }
+
+        .planet.owned-by-enemy {
+            border-color: #e74c3c;
+            box-shadow: 0 0 25px #e74c3c, inset 0 0 15px rgba(231,76,60,0.2);
+        }
+
+        .planet.neutral {
+            border-color: #95a5a6;
+            box-shadow: 0 0 15px rgba(149,165,166,0.3);
+        }
+
+        .planet-level {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+        }
+
+        .planet-info {
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .control-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.8));
+            border-radius: 20px 20px 0 0;
+            padding: 20px 15px 10px;
+            border-top: 2px solid #4a90e2;
+            max-height: 200px;
+            overflow-y: auto;
+            backdrop-filter: blur(15px);
+        }
+
+        .panel-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .tab-btn {
+            background: rgba(74, 144, 226, 0.2);
+            color: white;
+            border: 1px solid #4a90e2;
+            padding: 10px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(45deg, #4a90e2, #7b68ee);
+            box-shadow: 0 0 15px rgba(74,144,226,0.4);
+            transform: translateY(-2px);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .building-grid, .upgrade-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 10px;
+        }
+
+        .building-card, .upgrade-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            padding: 12px 8px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .building-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .building-card:active::before {
+            left: 100%;
+        }
+
+        .building-card:active {
+            transform: scale(0.95);
+            background: rgba(74, 144, 226, 0.3);
+        }
+
+        .building-card.premium {
+            border: 2px solid #9b59b6;
+            box-shadow: 0 0 15px rgba(155,89,182,0.3);
+        }
+
+        .premium-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+            color: white;
+            font-size: 8px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #4a90e2, #7b68ee);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(74,144,226,0.3);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn.premium {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+            box-shadow: 0 4px 15px rgba(155,89,182,0.4);
+        }
+
+        .notifications {
+            position: fixed;
+            top: 90px;
+            right: 15px;
+            z-index: 1500;
+            max-width: 250px;
+        }
+
+        .notification {
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            border-left: 4px solid #4a90e2;
+            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-size: 12px;
+        }
+
+        .notification.success { border-left-color: #27ae60; }
+        .notification.warning { border-left-color: #f39c12; }
+        .notification.danger { border-left-color: #e74c3c; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .level-up-animation {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #f39c12;
+            text-shadow: 0 0 20px #f39c12;
+            z-index: 2000;
+            animation: levelUpPulse 2s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes levelUpPulse {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        .install-prompt {
+            position: fixed;
+            bottom: 220px;
+            left: 15px;
+            right: 15px;
+            background: linear-gradient(45deg, #4a90e2, #7b68ee);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            text-align: center;
+            z-index: 1500;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .game-title { font-size: 16px; }
+            .resources-grid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+            .resource { padding: 4px 6px; font-size: 10px; }
+            .building-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .control-panel { padding: 15px 10px 5px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="game-header">
+        <div class="game-title">🚀 Cosmic Kingdoms</div>
+        <div class="player-level" id="playerLevel">Nivel 1</div>
+        <div class="resources-grid">
+            <div class="resource premium-currency">💎 <span id="gems">50</span></div>
+            <div class="resource">⭐ <span id="energy">1000</span></div>
+            <div class="resource">🔧 <span id="minerals">500</span></div>
+            <div class="resource">🧬 <span id="research">100</span></div>
+        </div>
+    </div>
+
+    <div class="notifications" id="notifications"></div>
+    <div class="game-world" id="gameWorld"></div>
+
+    <div class="control-panel">
+        <div class="panel-tabs">
+            <button class="tab-btn active" onclick="switchTab('buildings')">🏗️ Construir</button>
+            <button class="tab-btn" onclick="switchTab('army')">⚔️ Ejército</button>
+            <button class="tab-btn" onclick="switchTab('shop')">💎 Tienda</button>
+        </div>
+
+        <div id="buildings" class="tab-content active">
+            <div class="building-grid">
+                <div class="building-card" onclick="buildStructure('energyPlant')">
+                    <div>⚡ Planta</div>
+                    <div style="font-size: 9px; color: #bbb;">200⭐</div>
+                </div>
+                <div class="building-card" onclick="buildStructure('mineComplex')">
+                    <div>⛏️ Mina</div>
+                    <div style="font-size: 9px; color: #bbb;">150⭐</div>
+                </div>
+                <div class="building-card premium" onclick="buildStructure('superReactor')">
+                    <div class="premium-badge">PREMIUM</div>
+                    <div>⚛️ Reactor</div>
+                    <div style="font-size: 9px; color: #9b59b6;">10💎</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="army" class="tab-content">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="btn" onclick="trainTroops()">🔫 Entrenar (50⭐)</button>
+                <button class="btn premium" onclick="buyEliteUnits()">💎 Élite (5💎)</button>
+                <button class="btn" onclick="sendAttack()" id="attackBtn" disabled>⚔️ Atacar</button>
+            </div>
+            <div style="margin-top: 10px; font-size: 11px;">
+                Tropas: <span id="totalTroops">20</span>
+            </div>
+        </div>
+
+        <div id="shop" class="tab-content">
+            <button class="btn premium" onclick="simulatePurchase()">💎 Comprar Gemas ($0.99)</button>
+            <button class="btn" onclick="watchAd()" style="margin-left: 5px;">📺 Ver Anuncio (+50⭐)</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            playerLevel: 1,
+            experience: 0,
+            experienceToNext: 100,
+            resources: { gems: 50, energy: 1000, minerals: 500, research: 100 },
+            buildings: { energyPlant: 0, mineComplex: 0, superReactor: 0 },
+            planets: [],
+            selectedPlanet: null,
+            targetPlanet: null,
+            totalTroops: 20
+        };
+
+        // Initialize game
+        function initGame() {
+            createAnimatedStars();
+            createPlanets();
+            updateAllDisplays();
+            startResourceGeneration();
+            showInstallPrompt();
+            
+            // Register service worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js');
+            }
+        }
+
+        function createAnimatedStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = (Math.random() * 2 + 1) + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        function createPlanets() {
+            const gameWorld = document.getElementById('gameWorld');
+            const planetGradients = [
+                'linear-gradient(45deg, #3498db, #2980b9)',
+                'linear-gradient(45deg, #e74c3c, #c0392b)',
+                'linear-gradient(45deg, #f39c12, #e67e22)',
+                'linear-gradient(45deg, #2ecc71, #27ae60)',
+                'linear-gradient(45deg, #9b59b6, #8e44ad)',
+                'linear-gradient(45deg, #1abc9c, #16a085)'
+            ];
+            
+            for (let i = 0; i < 10; i++) {
+                const planet = {
+                    id: i,
+                    x: Math.random() * (window.innerWidth - 80) + 40,
+                    y: Math.random() * (window.innerHeight - 300) + 140,
+                    size: Math.random() * 20 + 50,
+                    level: Math.floor(Math.random() * 5) + 1,
+                    owner: i === 0 ? 0 : i < 4 ? Math.floor(Math.random() * 3) : -1,
+                    population: Math.floor(Math.random() * 100) + 30,
+                    defenses: Math.floor(Math.random() * 50) + 20
+                };
+                
+                const planetEl = document.createElement('div');
+                planetEl.className = 'planet';
+                planetEl.id = `planet-${i}`;
+                planetEl.style.left = planet.x + 'px';
+                planetEl.style.top = planet.y + 'px';
+                planetEl.style.width = planet.size + 'px';
+                planetEl.style.height = planet.size + 'px';
+                planetEl.style.background = planetGradients[i % planetGradients.length];
+                
+                if (planet.owner === 0) planetEl.classList.add('owned-by-player');
+                else if (planet.owner > 0) planetEl.classList.add('owned-by-enemy');
+                else planetEl.classList.add('neutral');
+                
+                planetEl.innerHTML = `
+                    <div style="font-size: ${Math.max(planet.size/4, 12)}px;">${i}</div>
+                    <div class="planet-level">${planet.level}</div>
+                    <div class="planet-info">👥${planet.population} 🛡️${planet.defenses}</div>
+                `;
+                
+                planetEl.onclick = () => selectPlanet(i);
+                gameWorld.appendChild(planetEl);
+                gameState.planets.push(planet);
+            }
+        }
+
+        function selectPlanet(planetId) {
+            if (gameState.selectedPlanet !== null) {
+                document.getElementById(`planet-${gameState.selectedPlanet}`).style.border = '3px solid transparent';
+            }
+            
+            gameState.selectedPlanet = planetId;
+            const planet = gameState.planets[planetId];
+            const planetEl = document.getElementById(`planet-${planetId}`);
+            planetEl.style.border = '3px solid #ffeb3b';
+            
+            if (planet.owner !== 0) {
+                gameState.targetPlanet = planetId;
+                document.getElementById('attackBtn').disabled = false;
+            }
+            
+            addNotification(`Planeta ${planetId} seleccionado`, 'info');
+        }
+
+        function buildStructure(type) {
+            const costs = { energyPlant: 200, mineComplex: 150, superReactor: 10 };
+            const cost = costs[type];
+            
+            if (type === 'superReactor' && gameState.resources.gems >= cost) {
+                gameState.resources.gems -= cost;
+                gameState.buildings[type]++;
+                addNotification('Reactor construido!', 'success');
+            } else if (type !== 'superReactor' && gameState.resources.energy >= cost) {
+                gameState.resources.energy -= cost;
+                gameState.buildings[type]++;
+                addNotification(`${type} construido!`, 'success');
+            } else {
+                addNotification('Recursos insuficientes', 'danger');
+            }
+            
+            updateAllDisplays();
+        }
+
+        function trainTroops() {
+            if (gameState.resources.energy >= 50) {
+                gameState.resources.energy -= 50;
+                gameState.totalTroops += 5;
+                addNotification('+5 tropas entrenadas', 'success');
+                updateAllDisplays();
+            } else {
+                addNotification('Energía insuficiente', 'danger');
+            }
+        }
+
+        function buyEliteUnits() {
+            if (gameState.resources.gems >= 5) {
+                gameState.resources.gems -= 5;
+                gameState.totalTroops += 15;
+                addNotification('+15 tropas élite', 'success');
+                updateAllDisplays();
+            } else {
+                addNotification('Gemas insuficientes', 'danger');
+            }
+        }
+
+        function sendAttack() {
+            if (gameState.targetPlanet === null || gameState.totalTroops < 5) {
+                addNotification('Selecciona objetivo y ten tropas', 'warning');
+                return;
+            }
+            
+            gameState.totalTroops -= 5;
+            addNotification('Ataque en progreso...', 'info');
+            
+            setTimeout(() => {
+                const target = gameState.planets[gameState.targetPlanet];
+                if (Math.random() > 0.5) {
+                    target.owner = 0;
+                    target.population = 25;
+                    document.getElementById(`planet-${gameState.targetPlanet}`).className = 'planet owned-by-player';
+                    addNotification('¡Victoria! Planeta conquistado', 'success');
+                } else {
+                    addNotification('Ataque repelido', 'danger');
+                }
+                updateAllDisplays();
+            }, 2000);
+        }
+
+        function watchAd() {
+            addNotification('Viendo anuncio...', 'info');
+            setTimeout(() => {
+                gameState.resources.energy += 50;
+                gameState.resources.gems += 2;
+                addNotification('¡Recompensa recibida!', 'success');
+                updateAllDisplays();
+            }, 3000);
+        }
+
+        function simulatePurchase() {
+            addNotification('En juego real: activaría Apple/Google Pay', 'info');
+            setTimeout(() => {
+                gameState.resources.gems += 100;
+                addNotification('¡100 gemas añadidas! (simulado)', 'success');
+                updateAllDisplays();
+            }, 2000);
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`[onclick*="${tabName}"]`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function updateAllDisplays() {
+            document.getElementById('gems').textContent = gameState.resources.gems;
+            document.getElementById('energy').textContent = gameState.resources.energy;
+            document.getElementById('minerals').textContent = gameState.resources.minerals;
+            document.getElementById('research').textContent = gameState.resources.research;
+            document.getElementById('playerLevel').textContent = `Nivel ${gameState.playerLevel}`;
+            document.getElementById('totalTroops').textContent = gameState.totalTroops;
+        }
+
+        function startResourceGeneration() {
+            setInterval(() => {
+                gameState.resources.energy += gameState.buildings.energyPlant * 5 + 2;
+                gameState.resources.minerals += gameState.buildings.mineComplex * 3 + 1;
+                gameState.resources.research += gameState.buildings.superReactor * 2;
+                updateAllDisplays();
+            }, 5000);
+        }
+
+        function addNotification(message, type = 'info') {
+            const notificationEl = document.createElement('div');
+            notificationEl.className = `notification ${type}`;
+            notificationEl.textContent = message;
+            
+            document.getElementById('notifications').appendChild(notificationEl);
+            
+            setTimeout(() => notificationEl.remove(), 4000);
+        }
+
+        function showInstallPrompt() {
+            // Show install prompt for iOS
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !window.navigator.standalone) {
+                setTimeout(() => {
+                    const prompt = document.createElement('div');
+                    prompt.className = 'install-prompt';
+                    prompt.innerHTML = `
+                        📱 Para mejor experiencia, añade a la pantalla de inicio:<br>
+                        Toca <strong>Compartir</strong> → <strong>Añadir a pantalla de inicio</strong>
+                        <button onclick="this.parentElement.remove()" style="float:right; background:none; border:none; color:white; font-size:16px; cursor:pointer;">×</button>
+                    `;
+                    document.body.appendChild(prompt);
+                }, 3000);
+            }
+        }
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', initGame);
+
+        // Save game state
+        setInterval(() => {
+            localStorage.setItem('cosmicKingdoms', JSON.stringify(gameState));
+        }, 10000);
+
+        // Load saved game
+        const savedGame = localStorage.getItem('cosmicKingdoms');
+        if (savedGame) {
+            try {
+                Object.assign(gameState, JSON.parse(savedGame));
+            } catch (e) {
+                console.log('No saved game found');
+            }
+        }
+    </script>
+</body>
+</html>
